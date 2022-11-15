@@ -1,0 +1,12 @@
+---
+title: "HW 5"
+author: "Vanessa Dinh"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+
+```
+
+## Problem 2
