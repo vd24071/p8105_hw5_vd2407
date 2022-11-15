@@ -10,3 +10,39 @@ library(tidyverse)
 ```
 
 ## Problem 2
+
+```{r}
+url = "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
+
+raw_wapo_homocide = 
+  read_csv(url) %>% 
+  janitor::clean_names()
+```
+The raw data has 52,179 observations of homicide data displaying city, state, reported homocide date, victim demographics (first name, last name, race, age, and sex), the latitude and longitude of the location of the homocide, and the disposition of the homocide case (open or closed).
+
+```{r}
+wapo_homocide =
+  raw_wapo_homocide %>% 
+  mutate(
+    city_state = paste(city, state, sep = ", "),
+    disposition = as.factor(disposition),
+    city_state = as.factor(city_state),
+    uid = as.factor(uid)
+  ) 
+
+
+unsolved_homocide = 
+  wapo_homocide %>% 
+  group_by(city_state) %>% 
+  summarize(
+    num_unsolved_homocide = sum(disposition != "Closed by arrest"),
+    num_homocides = n()
+    ) 
+
+```
+
+```{r}
+#proptest_unsolved_homocide =
+#  prop.test(unsolved_homocide, 
+```
+
