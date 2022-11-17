@@ -123,6 +123,7 @@ final_unsolved_df %>%
 
 ## Problem 3
 
+
 ```{r}
 sim_power = function(mu) {
 
@@ -150,22 +151,9 @@ sim_power = function(mu) {
 ```
 
 ```{r}
-sim_mu_zero_df =
-  expand_grid(
-    mu_input = 0,
-    iter = 1:5000
-  ) %>% 
-  mutate(
-    estimate_mu_zero_df = map(mu_input, sim_power)
-  ) %>% 
-  unnest(estimate_mu_zero_df) 
-
-```
-
-```{r}
 sim_mu_df =
   expand_grid(
-    mu_input = 1:6,
+    mu_input = 0:6,
     iter = 1:5000
   ) %>% 
   mutate(
@@ -212,8 +200,8 @@ sim_mu_plot_df %>%
     y = "Power or Proportion of Times Null Hypothesis was Rejected"
   ) +
   scale_x_continuous(
-    breaks = c(1, 2, 3, 4, 5, 6),
-    labels = c("1", "2", "3", "4", "5", "6")
+    breaks = c(0, 1, 2, 3, 4, 5, 6),
+    labels = c("0", "1", "2", "3", "4", "5", "6")
   ) +
   scale_y_continuous(
     breaks = c(0.00, 0.25, 0.50, 0.75, 1.00),
@@ -237,8 +225,8 @@ sim_mu_plot_df %>%
     y = "Average Estimate of the Mean"
   ) +
   scale_x_continuous(
-    breaks = c(1, 2, 3, 4, 5, 6),
-    labels = c("1", "2", "3", "4", "5", "6")
+    breaks = c(0, 1, 2, 3, 4, 5, 6),
+    labels = c("0", "1", "2", "3", "4", "5", "6")
   ) 
 
 ```
