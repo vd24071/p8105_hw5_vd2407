@@ -1,13 +1,12 @@
 ---
-title: "HW 5"
+title: "p8105_hw5_vd2407"
 author: "Vanessa Dinh"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
+```{r}
 library(tidyverse)
 library(purrr)
-library(ggplot2)
 ```
 
 ## Problem 2
@@ -42,6 +41,9 @@ unsolved_homocide =
     num_homocides = n()
     ) 
 
+unsolved_homocide %>% 
+  knitr::kable()
+
 ```
 
 ```{r}
@@ -53,7 +55,7 @@ balti_homocides =
 balti_x = balti_homocides %>% pull(num_unsolved_homocide)
 balti_n = balti_homocides %>% pull(num_homocides)
 
-proptest_balti = 
+proptest_balti =
   prop.test(
      balti_x,
      balti_n, 
@@ -62,8 +64,10 @@ proptest_balti =
      correct = TRUE) %>% 
   broom::tidy() %>% 
   janitor::clean_names() %>% 
-  select(estimate, conf_low, conf_high)
+  select(estimate, conf_low, conf_high) 
 
+proptest_balti %>% 
+  knitr::kable()
 ```
 
 ```{r}
@@ -90,18 +94,17 @@ prop_test_city = function(x) {
 prop_test_x
 }
 
-prop_test_city(unsolved_homocide$city_state[[3]])
-
-map(unsolved_homocide$city_state, prop_test_city)
-
 final_unsolved_df =
   unsolved_homocide %>% 
   mutate(summary = map(city_state, prop_test_city)) %>% 
   unnest(summary)
+
+final_unsolved_df %>% 
+  knitr::kable()
   
 ```
 
-```{r}
+```{r fig.align = "center", fig.width = 10}
 final_unsolved_df %>% 
   ggplot(aes(x = reorder(city_state, estimate), y = estimate)) +
   geom_point(aes(x = reorder(city_state, estimate), y = estimate), color = "deepskyblue3") +
@@ -114,33 +117,131 @@ final_unsolved_df %>%
   theme(legend.position = "none") +
   scale_x_discrete(
     guide = guide_axis(angle = 40)
-  )
+  ) 
   
 ```
 
 ## Problem 3
 
 ```{r}
-# sim_power = function(n = 30, mu, sigma = 5) {
-#   
-#   sim_data = tibble(
-#     x = rnorm(n, mean = mu, sd = sigma),
-#   )
-#   
-#   sim_data %>% 
-#     summarize(
-#       mu_hat = mean(x),
-#       signma_hat = sd(x)
-#     )
-# }
-# 
-# output = (0, 5000)
-# 
-# for (i in 1:5000) {
-#   output[[i]] = sim_power
-# }
-# 
-# sim_results = bind_rows(output)
+sim_power = function(mu) {
+
+  n = 30
+  sigma = 5
+  
+  sim_data = tibble(
+    x = rnorm(n, mean = mu, sd = sigma),
+  ) 
+  
+  t.test(
+    sim_data,
+    alternative = c("two.sided"),
+    mu = 0,
+    conf.level = 0.95
+  ) %>% 
+    broom::tidy() %>% 
+    janitor::clean_names() %>% 
+    mutate(
+      mu_hat = estimate
+    ) %>% 
+    select(mu_hat, p_value) 
+}
 
 ```
 
+```{r}
+sim_mu_zero_df =
+  expand_grid(
+    mu_input = 0,
+    iter = 1:5000
+  ) %>% 
+  mutate(
+    estimate_mu_zero_df = map(mu_input, sim_power)
+  ) %>% 
+  unnest(estimate_mu_zero_df) 
+
+```
+
+```{r}
+sim_mu_df =
+  expand_grid(
+    mu_input = 1:6,
+    iter = 1:5000
+  ) %>% 
+  mutate(
+    estimate_mu_df = map(mu_input, sim_power)
+  ) %>% 
+  unnest(estimate_mu_df)
+```
+
+```{r}
+sim_mu_plot_df =
+  sim_mu_df %>%
+  mutate(
+    null_rej = case_when(
+      p_value < 0.05 ~ 1,
+      p_value >= 0.05 ~ 0
+    ),
+    mu_hat_null_rej = case_when(
+      null_rej == 1 ~ mu_hat
+    )
+  ) %>% 
+  group_by(mu_input) %>% 
+  summarize(
+    num_null_rej = sum(null_rej),
+    total = n(),
+    mean_mu_hat = mean(mu_hat),
+    mean_mu_hat_null_rej = mean(mu_hat_null_rej, na.rm = TRUE)
+  ) %>% 
+  mutate(
+    proportion_null_rej = num_null_rej/total
+  ) 
+
+sim_mu_plot_df %>% 
+  knitr::kable()
+```
+
+
+```{r fig.align = "center"}
+sim_mu_plot_df %>% 
+  ggplot(aes(x = mu_input, y = proportion_null_rej)) +
+  geom_col(fill = "darkolivegreen3", width = 0.5) +
+  labs(
+    title = "Power in One-Sample T-Test",
+    x = "True Value of Mu",
+    y = "Power or Proportion of Times Null Hypothesis was Rejected"
+  ) +
+  scale_x_continuous(
+    breaks = c(1, 2, 3, 4, 5, 6),
+    labels = c("1", "2", "3", "4", "5", "6")
+  ) +
+  scale_y_continuous(
+    breaks = c(0.00, 0.25, 0.50, 0.75, 1.00),
+    labels = c("0", "0.25", "0.50", "0.75", "1.00")
+  ) 
+ 
+```
+
+The effect size can be described here as the difference between the true value of mu and the null hypothesis that mu is equal to zero.
+
+As effect size increases, power also increases, keeping sample size and standard deviation is constant.
+
+```{r fig.align = "center"}
+sim_mu_plot_df %>%
+  ggplot(aes(x = mu_input, y = mean_mu_hat)) +
+  geom_line(color = "blue") +
+  geom_line(aes(x = mu_input, y = mean_mu_hat_null_rej), color = "red") +
+  labs(
+    title = "True Value of Mu vs Average Estimate of the Mean",
+    x = "True Value of Mu",
+    y = "Average Estimate of the Mean"
+  ) +
+  scale_x_continuous(
+    breaks = c(1, 2, 3, 4, 5, 6),
+    labels = c("1", "2", "3", "4", "5", "6")
+  ) 
+
+```
+The sample average of mu hat across tests for which the null is rejected is approximately equal to the true value of mu only when the true value of mu is greater than or equal to 4. Otherwise, the sample average of mu hat tends to be greater than the true value of mu when the true value of mu is less than or equal to 3.
+
+As the effect size increases, there is a smaller probability of a Type II Error, which is an error that happens when one fails to reject the null hypothesis that is actually false. As the probability of a Type II Error decreases, there is an increasing proportion of samples that correctly reject the null, so the average estimate of the expected mean closer approximates the true value of mu.
